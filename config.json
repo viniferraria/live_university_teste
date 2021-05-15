@@ -3,7 +3,6 @@
   "password": "7412LIVE!@#$% ̈&*()",
   "server": "virtual2.febracorp.org.br",
   "options": {
-    "database": "CONTOSO",
-    "encrypt": true
+    "database": "CONTOSO"
   }
 }
