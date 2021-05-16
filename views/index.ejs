@@ -117,6 +117,7 @@
         myForm.addEventListener("submit", async (e) => {
             try {
                 let { nome, sobrenome, email } = e.target;
+                debugger;
                 nome = nome.value.replaceAll(/[\W\d]/g, "");
                 sobrenome = sobrenome.value.replaceAll(/[\W\d]/g, "");
                 email = email.value.replaceAll(/['"=]/g, "");
@@ -127,9 +128,10 @@
                 }
 
                 let pessoa = await criarPessoa(nome, sobrenome, email);
-                if (!!!pessoa)
+                if (!!!pessoa) {
                     alert("Erro ao criar pessoa")
-                return;
+                    return;
+                }
 
                 let resultado = await obterResultado({
                     nome, sobrenome, email,
