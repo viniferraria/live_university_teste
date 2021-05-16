@@ -1,42 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="/dist/semantic.min.css">
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"
+        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script src="semantic/dist/semantic.min.js"></script>
     <title>Live</title>
 </head>
+
 <body>
-    <div class="col">
-        <div class="row">
-            <form id="myForm" action="javascript:void(0);">
-                <div>
-                    <label for="nome">Nome: </label> 
-                    <input type="text" id="nome" name="nome" required>
-                    <label for="sobrenome">Sobrenome: </label> 
-                    <input type="text" id="sobrenome" name="sobrenome" required>
-                    <label for="email">Email: </label> 
-                    <input type="email" id="email" name="email" required>
-                    <button type="submit">Enviar</button>
+    <div class="ui container">
+        <h2 style="text-align: center;">Live University</h2>
+        <form id="myForm" action="javascript:void(0);" class="ui form">
+            <div>
+                <div class="field">
+                    <div class="ui labeled input">
+                        <div class="ui label">
+                            Nome
+                        </div>
+                        <input type="text" placeholder="Mark" id="nome" name="nome">
+                    </div>
                 </div>
-            </form>
-        </div>
-        <div class="row">
-        </div>
+                </br>
+                <div class="field">
+                    <div class="ui labeled input">
+                        <div class="ui label">
+                            Sobrenome
+                        </div>
+                        <input type="text" placeholder="Mark" id="sobrenome" name="sobrenome">
+                    </div>
+                </div>
+                </br>
+                <div class="field">
+                    <div class="ui labeled input">
+                        <div class="ui label">
+                            Email
+                        </div>
+                        <input type="text" placeholder="Mark" id="email" name="email">
+                    </div>
+                </div>
+                <button class="ui button" type="submit">Enviar</button>
+            </div>
+        </form>
+        <table class="ui celled table">
+            <caption>
+                <h2>Resultado</h2>
+            </caption>
+            <thead>
+                <tr>
+                    <th>Animal</th>
+                    <th>Cor</th>
+                    <th>País</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td data-label="Animal" id="animal"></td>
+                    <td data-label="Cor" id="cor"></td>
+                    <td data-label="País" id="pais"></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
     <script lang="js">
         'use strict'
 
         let myForm = document.getElementById('myForm');
-        
-        myForm.addEventListener("submit", async (e) => {
-            let { nome, sobrenome, email } = e.target;
+        let tdAnimal = document.getElementById('animal');
+        let tdCor = document.getElementById('cor');
+        let tdPais = document.getElementById('pais');
 
-            nome = nome.value.replaceAll(/[\W\d]/g, "");
-            sobrenome = sobrenome.value.replaceAll(/[\W\d]/g, "");
-            email = email.value.replaceAll(/['"=]/g, "");
-
+        async function criarPessoa({ nome, sobrenome, email }) {
             let body = new URLSearchParams({
                 nome,
                 sobrenome,
@@ -46,44 +84,77 @@
             let res = await fetch("http://138.68.29.250:8082", {
                 method: "POST",
                 body,
-                headers: new Headers({ "Content-Type": "application/x-www-form-urlencoded"})
+                headers: new Headers({ "Content-Type": "application/x-www-form-urlencoded" })
             });
-
-            if (res.status !== 200) {
-                return alert("Erro ao inserir");
-            }
 
             res = await res.text();
 
             if (res.match(/erro/i)) {
-                return alert("Erro ao inserir");
+                return -1;
             }
 
             let { 1: cod_nome, 3: cod_sobrenome, 5: cod_email } = res.split("#");
+            return { cod_nome, cod_sobrenome, cod_email };
+        }
 
-            
-            body = { 
-                nome, cod_nome,
-                sobrenome, cod_sobrenome,
-                email, cod_email
+        async function obterResultado({ nome, sobrenome, email, cod_nome, cod_sobrenome, cod_email }) {
+            let body = {
+                nome, sobrenome, email,
+                cod_nome, cod_sobrenome, cod_email
             }
-
-            res = await fetch("/", {
+            let res = await fetch("/", {
                 method: "POST",
                 body: JSON.stringify(body),
                 headers: new Headers({ "Content-Type": "application/json" })
             });
 
-            
-            if (res.status !== 200) {
-                return alert("Erro ao inserir");
-            }
-
+            let { status } = res;
             res = await res.json();
-            console.log(res);
 
+            return { status, ...res };
+        }
+
+        myForm.addEventListener("submit", async (e) => {
+            try {
+                let { nome, sobrenome, email } = e.target;
+                nome = nome.value.replaceAll(/[\W\d]/g, "");
+                sobrenome = sobrenome.value.replaceAll(/[\W\d]/g, "");
+                email = email.value.replaceAll(/['"=]/g, "");
+
+                if (!nome.length || !sobrenome.length || !email.length) {
+                    alert("Nome ou sobrenome inválidos");
+                    return;
+                }
+
+                let pessoa = await criarPessoa(nome, sobrenome, email);
+                if (!!!pessoa)
+                    alert("Erro ao criar pessoa")
+                return;
+
+                let resultado = await obterResultado({
+                    nome, sobrenome, email,
+                    cod_nome: pessoa.cod_nome,
+                    cod_sobrenome: pessoa.cod_sobrenome,
+                    cod_email: pessoa.cod_email
+                })
+
+                if (resultado.status !== 200) {
+                    alert(`Erro ao obter resultado: ${resultado.message}`);
+                    return;
+                }
+                console.log(resultado);
+
+                tdAnimal.innerText = resultado.Animal;
+                tdCor.innerText = resultado.Cor;
+                tdPais.innerText = resultado.Pais;
+
+
+            } catch (err) {
+                alert(err.toString());
+            }
         });
 
     </script>
 </body>
+
 </html>

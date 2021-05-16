@@ -3,96 +3,56 @@
 const express = require("express");
 const app = express();
 var tp = require('tedious-promises');
-var TYPES = require('tedious').TYPES;
+// var TYPES = require('tedious').TYPES;
 var dbConfig = require('./config.json');
 tp.setConnectionConfig(dbConfig); 
 tp.setPromiseLibrary('es6');
+const port ="4000";
 
 app.use(express.urlencoded({
     extended: true
 }));
 app.use(express.json());
+app.use(express.static(__dirname + '/semantic'));
 app.set('view engine', 'ejs');
 
 app.get('/', (_, res) => {
-    res.render('index'/*, { people }*/);
+    res.render('index');
 });
 
 app.post('/', async (req, res) => {
-  let { nome, cod_nome, sobrenome, cod_sobrenome, email, cod_email } = req.body;
-  let message, status;
-  console.log({ nome, cod_nome, sobrenome, cod_sobrenome, email, cod_email });
   try {
-    let query = `INSERT INTO [dbo].tbs_nome (nome, cod) VALUES ('${nome}', ${cod_nome})\
-    GO\
-    INSERT INTO [dbo].tbs_sobrenome (sobrenome, cod) VALUES ('${sobrenome}', ${cod_sobrenome})\
-    GO\
-    INSERT INTO [dbo].tbs_email (email, cod) VALUES ('${email}', ${cod_email})\
-    GO`
-    let results = await tp.sql(query).execute();
+    let { nome, cod_nome, sobrenome, cod_sobrenome, email, cod_email } = req.body;
     
-    results = await tp.sql(`\
-      INSERT INTO dbo.tbs_nome (nome, cod) VALUES (${nome}, ${cod_nome})\
-      GO\
-      INSERT INTO dbo.tbs_sobrenome (sobrenome, cod) VALUES (${sobrenome}, ${cod_sobrenome})\
-      GO\
-      INSERT INTO dbo.tbs_email (email, cod) VALUES (${email}, ${cod_email})\
-      GO\
-    `).execute();
+    // Inserindo nas tabelas - etapa 3
+    let query = `INSERT INTO [dbo].tbs_nome (nome, cod) VALUES ('${nome}', ${cod_nome})\
+    INSERT INTO [dbo].tbs_sobrenome (sobrenome, cod) VALUES ('${sobrenome}', ${cod_sobrenome})\
+    INSERT INTO [dbo].tbs_email (email, cod) VALUES ('${email}', ${cod_email})`;
+    await tp.sql(query).execute();
+    
+    // Recuperando o campo soma para email, nome e sobrenome das tabelas - etapa 4
+    query = `SELECT soma FROM tbs_cod_nome WHERE cod = ${cod_nome}\
+    SELECT soma FROM tbs_cod_sobrenome WHERE cod = ${cod_sobrenome}\
+    SELECT soma FROM tbs_cod_email WHERE cod = ${cod_email}`;
+    let results = await tp.sql(query).execute();
+
+    // Calculando a soma de todos os campos - etapa 5
+    let total = results.reduce((total, {soma}) => total + +soma, 0);
+    total += (+cod_email + +cod_nome + +cod_sobrenome); 
+
+    // Recuperando o animal, cor e pais da tabela - etapa 6
+    query = `SELECT a.animal, c.cor, p.pais, p.total FROM tbs_animais a \
+    INNER JOIN tbs_cores c ON a.total = c.total \
+    INNER JOIN tbs_paises p ON c.total = p.total \
+    WHERE a.total  = ${total} AND c.cor NOT IN (SELECT cor from tbs_cores_excluidas tce where total = ${total})`;
+    results = await tp.sql(query).execute();
     console.log(results);
-    status = 200;
-    message = "Sucesso";
+
+    // Retornando os resultados - etapa 8 
+    return res.status(200).json(results);
   } catch (err) {
-    console.log(err);
-    message = err.toString();
-    status = 404;
-  } finally {
-    return res.status(status).json({ message });
+    return res.status(404).json({ message: err.toString() });
   }
 });
 
-app.get('/query', async (_req, res) => {
-  let message, status;
-  try {
-    let results = await tp.sql("SELECT TOP 10 * FROM dbo.tbs_nome").execute();
-    console.log(results);
-    status = 200;
-    message = "Sucesso";
-  } catch (err) {
-    console.log(err);
-    message = err.toString();
-    status = 404;
-  } finally {
-    return res.status(status).json({ message });
-  }
-});
-
-
-app.listen(4000, () => console.log('Example app listening on port 4000!'));
-
-
-/* tp.sql("INSERT INTO table (col1, col2) VALUES ('x','y'); SELECT @@identity as id")
-  .execute()
-  .then(function(results) {
-    console.log(results[0].id);
-  });
-
-  tp.sql("SELECT col1, col2 FROM dbo.table")
-  .execute()
-  .then(function(results) {
-    // do something with the results
-  }).fail(function(err) {
-    // do something with the failure
-  });
-
-function getData(id) {
-    return tp.sql("SELECT col1, col2, FROM table WHERE id_col = @id")
-      .parameter('id', TYPES.Int, id)
-      .execute();
-  } */
-
-/*   tp.sql("INSERT INTO table (col1, col2) VALUES ('x','y'); SELECT @@identity as id")
-  .execute()
-  .then(function(results) {
-    console.log(results[0].id);
-  }); */
+app.listen(port, () => console.log(`app listening on port ${port}!`));

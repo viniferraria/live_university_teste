@@ -6,6 +6,7 @@
   "dependencies": {
     "ejs": "^3.1.6",
     "express": "^4.17.1",
+    "semantic-ui": "^2.4.2",
     "tedious-promises": "^0.4.1"
   },
   "devDependencies": {
