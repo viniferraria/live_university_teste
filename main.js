@@ -18,34 +18,53 @@ app.get('/', (_, res) => {
     res.render('index'/*, { people }*/);
 });
 
-app.post('/', (req, res) => {
-    let { nome, sobrenome, email } = req.body;
-    console.log({ nome, sobrenome, email });
-    return res.status(200).json({ nome, sobrenome, email });
+app.post('/', async (req, res) => {
+  let { nome, cod_nome, sobrenome, cod_sobrenome, email, cod_email } = req.body;
+  let message, status;
+  console.log({ nome, cod_nome, sobrenome, cod_sobrenome, email, cod_email });
+  try {
+    let query = `INSERT INTO [dbo].tbs_nome (nome, cod) VALUES ('${nome}', ${cod_nome})\
+    GO\
+    INSERT INTO [dbo].tbs_sobrenome (sobrenome, cod) VALUES ('${sobrenome}', ${cod_sobrenome})\
+    GO\
+    INSERT INTO [dbo].tbs_email (email, cod) VALUES ('${email}', ${cod_email})\
+    GO`
+    let results = await tp.sql(query).execute();
+    
+    results = await tp.sql(`\
+      INSERT INTO dbo.tbs_nome (nome, cod) VALUES (${nome}, ${cod_nome})\
+      GO\
+      INSERT INTO dbo.tbs_sobrenome (sobrenome, cod) VALUES (${sobrenome}, ${cod_sobrenome})\
+      GO\
+      INSERT INTO dbo.tbs_email (email, cod) VALUES (${email}, ${cod_email})\
+      GO\
+    `).execute();
+    console.log(results);
+    status = 200;
+    message = "Sucesso";
+  } catch (err) {
+    console.log(err);
+    message = err.toString();
+    status = 404;
+  } finally {
+    return res.status(status).json({ message });
+  }
 });
 
 app.get('/query', async (_req, res) => {
-    let message, status;
-    try {
-      let results = await tp.sql("SELECT TOP 10 * FROM dbo.tbs_nome").execute();
-      console.log(results);
-      status = 200;
-      message = "Sucesso";
-    } catch (err) {
-      console.log(err);
-      message = err.toString();
-      status = 404;
-    } finally {
-      return res.status(status).json({ message });
-    }
-    /* tp.sql("SELECT TOP 10 * FROM dbo.tbs_nome")
-    .execute()
-    .then(function(results) {
-        console.log(results);
-        return res.status(200).json({ nome, sobrenome, email });
-    }).fail(function(err) {
-      return res.status(400).json({ "erro": "erro" });
-    }); */
+  let message, status;
+  try {
+    let results = await tp.sql("SELECT TOP 10 * FROM dbo.tbs_nome").execute();
+    console.log(results);
+    status = 200;
+    message = "Sucesso";
+  } catch (err) {
+    console.log(err);
+    message = err.toString();
+    status = 404;
+  } finally {
+    return res.status(status).json({ message });
+  }
 });
 
 
