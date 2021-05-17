@@ -15,61 +15,68 @@
 <body>
     <div class="ui container">
         <h2 style="text-align: center;">Live University</h2>
-        <form id="myForm" action="javascript:void(0);" class="ui form">
-            <div>
-                <div class="field">
-                    <div class="ui labeled input">
-                        <div class="ui label">
-                            Nome
-                        </div>
-                        <input type="text" placeholder="Mark" id="nome" name="nome">
-                    </div>
-                </div>
-                </br>
-                <div class="field">
-                    <div class="ui labeled input">
-                        <div class="ui label">
-                            Sobrenome
-                        </div>
-                        <input type="text" placeholder="Nolan" id="sobrenome" name="sobrenome">
-                    </div>
-                </div>
-                </br>
-                <div class="field">
-                    <div class="ui labeled input">
-                        <div class="ui label">
-                            Email
-                        </div>
-                        <input type="text" placeholder="mark@me.com" id="email" name="email">
-                    </div>
-                </div>
-                <button class="ui button" type="submit">Enviar</button>
+        <div class="ui segment">
+            <div class="ui" id="loader">
+                <div class="ui loader"></div>
             </div>
-        </form>
-        <table class="ui celled table">
-            <caption>
-                <h2>Resultado</h2>
-            </caption>
-            <thead>
-                <tr>
-                    <th>Animal</th>
-                    <th>Cor</th>
-                    <th>País</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td data-label="Animal" id="animal"></td>
-                    <td data-label="Cor" id="cor"></td>
-                    <td data-label="País" id="pais"></td>
-                </tr>
-            </tbody>
-        </table>
+            <form id="myForm" action="javascript:void(0);" class="ui form">
+                <div>
+                    <div class="field">
+                        <div class="ui labeled input">
+                            <div class="ui label">
+                                Nome
+                            </div>
+                            <input type="text" placeholder="Mark" id="nome" name="nome">
+                        </div>
+                    </div>
+                    </br>
+                    <div class="field">
+                        <div class="ui labeled input">
+                            <div class="ui label">
+                                Sobrenome
+                            </div>
+                            <input type="text" placeholder="Nolan" id="sobrenome" name="sobrenome">
+                        </div>
+                    </div>
+                    </br>
+                    <div class="field">
+                        <div class="ui labeled input">
+                            <div class="ui label">
+                                Email
+                            </div>
+                            <input type="text" placeholder="mark@me.com" id="email" name="email">
+                        </div>
+                    </div>
+                    <button class="ui button" type="submit">Enviar</button>
+                </div>
+            </form>
+            <table class="ui celled table">
+                <caption>
+                    <h2>Resultado</h2>
+                </caption>
+                <thead>
+                    <tr>
+                        <th>Animal</th>
+                        <th>Cor</th>
+                        <th>País</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-label="Animal" id="animal"></td>
+                        <td data-label="Cor" id="cor"></td>
+                        <td data-label="País" id="pais"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
     <script lang="js">
         'use strict'
 
         let myForm = document.getElementById('myForm');
+        let loader = document.getElementById('loader');
+
         let tdAnimal = document.getElementById('animal');
         let tdCor = document.getElementById('cor');
         let tdPais = document.getElementById('pais');
@@ -116,8 +123,8 @@
 
         myForm.addEventListener("submit", async (e) => {
             try {
+                loader.className = "ui active dimmer";
                 let { nome, sobrenome, email } = e.target;
-                debugger;
                 nome = nome.value.replaceAll(/[\W\d]/g, "");
                 sobrenome = sobrenome.value.replaceAll(/[\W\d]/g, "");
                 email = email.value.replaceAll(/['"=]/g, "");
@@ -127,7 +134,7 @@
                     return;
                 }
 
-                let pessoa = await criarPessoa(nome, sobrenome, email);
+                let pessoa = await criarPessoa({ nome, sobrenome, email });
                 if (!!!pessoa) {
                     alert("Erro ao criar pessoa")
                     return;
@@ -140,19 +147,21 @@
                     cod_email: pessoa.cod_email
                 })
 
-                if (resultado.status !== 200) {
+                if (resultado.status !== 200 || !!!resultado['0']) {
                     alert(`Erro ao obter resultado: ${resultado.message}`);
                     return;
                 }
-                console.log(resultado);
+                resultado = resultado['0']; 
 
-                tdAnimal.innerText = resultado.Animal;
-                tdCor.innerText = resultado.Cor;
-                tdPais.innerText = resultado.Pais;
+                tdAnimal.innerText = resultado.animal;
+                tdCor.innerText = resultado.cor;
+                tdPais.innerText = resultado.pais;
 
 
             } catch (err) {
                 alert(err.toString());
+            } finally {
+                loader.className = "ui";
             }
         });
 

@@ -40,13 +40,12 @@ app.post('/', async (req, res) => {
     let total = results.reduce((total, {soma}) => total + +soma, 0);
     total += (+cod_email + +cod_nome + +cod_sobrenome); 
 
-    // Recuperando o animal, cor e pais da tabela - etapa 6
-    query = `SELECT a.animal, c.cor, p.pais, p.total FROM tbs_animais a \
+    // Recuperando um animal, uma cor e um pais da tabela - etapa 6
+    query = `SELECT TOP 1 a.animal, c.cor, p.pais, p.total FROM tbs_animais a \
     INNER JOIN tbs_cores c ON a.total = c.total \
     INNER JOIN tbs_paises p ON c.total = p.total \
     WHERE a.total  = ${total} AND c.cor NOT IN (SELECT cor from tbs_cores_excluidas tce where total = ${total})`;
     results = await tp.sql(query).execute();
-    console.log(results);
 
     // Retornando os resultados - etapa 8 
     return res.status(200).json(results);
