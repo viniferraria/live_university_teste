@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/dist/semantic.min.css">
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"
+        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script src="semantic/dist/semantic.min.js"></script>
+    <title>Live</title>
+</head>
+
+<body>
+    <div class="ui container">
+        <h2 style="text-align: center;">Live University</h2>
+        <div class="ui segment">
+            <div class="ui" id="loader">
+                <div class="ui loader"></div>
+            </div>
+            <form id="myForm" action="javascript:void(0);" class="ui form">
+                <div>
+                    <div class="field">
+                        <div class="ui labeled input">
+                            <div class="ui label">
+                                Nome
+                            </div>
+                            <input type="text" placeholder="Mark" id="nome" name="nome">
+                        </div>
+                    </div>
+                    </br>
+                    <div class="field">
+                        <div class="ui labeled input">
+                            <div class="ui label">
+                                Sobrenome
+                            </div>
+                            <input type="text" placeholder="Nolan" id="sobrenome" name="sobrenome">
+                        </div>
+                    </div>
+                    </br>
+                    <div class="field">
+                        <div class="ui labeled input">
+                            <div class="ui label">
+                                Email
+                            </div>
+                            <input type="text" placeholder="mark@me.com" id="email" name="email">
+                        </div>
+                    </div>
+                    <button class="ui button" type="submit">Enviar</button>
+                </div>
+            </form>
+            <table class="ui celled table">
+                <caption>
+                    <h2>Resultado</h2>
+                </caption>
+                <thead>
+                    <tr>
+                        <th>Animal</th>
+                        <th>Cor</th>
+                        <th>País</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-label="Animal" id="animal"></td>
+                        <td data-label="Cor" id="cor"></td>
+                        <td data-label="País" id="pais"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script lang="js">
+        'use strict'
+
+        let myForm = document.getElementById('myForm');
+        let loader = document.getElementById('loader');
+
+        let tdAnimal = document.getElementById('animal');
+        let tdCor = document.getElementById('cor');
+        let tdPais = document.getElementById('pais');
+
+        async function criarPessoa({ nome, sobrenome, email }) {
+            let body = new URLSearchParams({
+                nome,
+                sobrenome,
+                email
+            });
+
+            let res = await fetch("http://138.68.29.250:8082", {
+                method: "POST",
+                body,
+                headers: new Headers({ "Content-Type": "application/x-www-form-urlencoded" })
+            });
+
+            res = await res.text();
+
+            if (res.match(/erro/i)) {
+                return -1;
+            }
+
+            let { 1: cod_nome, 3: cod_sobrenome, 5: cod_email } = res.split("#");
+            return { cod_nome, cod_sobrenome, cod_email };
+        }
+
+        async function obterResultado({ nome, sobrenome, email, cod_nome, cod_sobrenome, cod_email }) {
+            let body = {
+                nome, sobrenome, email,
+                cod_nome, cod_sobrenome, cod_email
+            }
+            let res = await fetch("/", {
+                method: "POST",
+                body: JSON.stringify(body),
+                headers: new Headers({ "Content-Type": "application/json" })
+            });
+
+            let { status } = res;
+            res = await res.json();
+
+            return { status, ...res };
+        }
+
+        myForm.addEventListener("submit", async (e) => {
+            try {
+                loader.className = "ui active dimmer";
+                let { nome, sobrenome, email } = e.target;
+                nome = nome.value.replaceAll(/[\W\d]/g, "");
+                sobrenome = sobrenome.value.replaceAll(/[\W\d]/g, "");
+                email = email.value.replaceAll(/['"=]/g, "");
+
+                if (!nome.length || !sobrenome.length || !email.length) {
+                    alert("Nome ou sobrenome inválidos");
+                    return;
+                }
+
+                let pessoa = await criarPessoa({ nome, sobrenome, email });
+                if (!!!pessoa) {
+                    alert("Erro ao criar pessoa")
+                    return;
+                }
+
+                let resultado = await obterResultado({
+                    nome, sobrenome, email,
+                    cod_nome: pessoa.cod_nome,
+                    cod_sobrenome: pessoa.cod_sobrenome,
+                    cod_email: pessoa.cod_email
+                })
+
+                if (resultado.status !== 200 || !!!resultado['0']) {
+                    alert(`Erro ao obter resultado: ${resultado.message}`);
+                    return;
+                }
+                resultado = resultado['0']; 
+
+                tdAnimal.innerText = resultado.animal;
+                tdCor.innerText = resultado.cor;
+                tdPais.innerText = resultado.pais;
+
+
+            } catch (err) {
+                alert(err.toString());
+            } finally {
+                loader.className = "ui";
+            }
+        });
+
+    </script>
+</body>
+
+</html>
